@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,9 +17,10 @@ type Client struct {
 }
 
 // internalFields are stripped from response data before returning to callers.
-// They expose upstream implementation details that leak Legnext's supply chain
-// and aren't useful to agents consuming the CLI.
+// They expose upstream implementation details, internal config, or noise
+// that agents consuming the CLI don't need.
 var internalFields = []string{
+	// Supply-chain identity
 	"provider",
 	"provider_name",
 	"worker",
@@ -26,6 +28,12 @@ var internalFields = []string{
 	"upstream_task_id",
 	"upstream_provider",
 	"upstream_status",
+	// Request echo / internal task config
+	"config",
+	"webhook_config",
+	"input",
+	"detail",
+	"logs",
 }
 
 func New(apiKey, apiBase string) *Client {
@@ -62,20 +70,28 @@ func (c *Client) Get(ctx context.Context, path string) (json.RawMessage, error) 
 	return unwrap(body)
 }
 
-// unwrap parses the Legnext API envelope and strips internal fields.
+// unwrap detects the Legnext `{code,data,message}` envelope and strips it,
+// falling back to passing the body through when the response is flat.
+// Not all endpoints wrap — /api/account/* do, /api/v1/* return flat task JSON.
 func unwrap(body []byte) (json.RawMessage, error) {
-	var env struct {
-		Code    int             `json:"code"`
-		Data    json.RawMessage `json:"data"`
-		Message string          `json:"message"`
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		// Not a JSON object (array, primitive, null). Pass through.
+		return body, nil
 	}
-	if err := json.Unmarshal(body, &env); err != nil {
-		return nil, fmt.Errorf("parse envelope: %w (body=%s)", err, truncate(string(body), 200))
+	_, hasCode := raw["code"]
+	_, hasData := raw["data"]
+	if hasCode && hasData {
+		var code int
+		_ = json.Unmarshal(raw["code"], &code)
+		if code != 0 && code != 200 {
+			var msg string
+			_ = json.Unmarshal(raw["message"], &msg)
+			return nil, fmt.Errorf("API error %d: %s", code, msg)
+		}
+		return sanitize(raw["data"]), nil
 	}
-	if env.Code != 0 && env.Code != 200 {
-		return nil, fmt.Errorf("API error %d: %s", env.Code, env.Message)
-	}
-	return sanitize(env.Data), nil
+	return sanitize(body), nil
 }
 
 // sanitize recursively removes internal-only fields from a JSON value.
@@ -114,6 +130,77 @@ func stripInternal(v any) {
 
 func (c *Client) Balance(ctx context.Context) (json.RawMessage, error) {
 	return c.Get(ctx, "/api/account/balance")
+}
+
+// Post performs an authenticated POST with JSON body, then unwraps the envelope.
+func (c *Client) Post(ctx context.Context, path string, body any) (json.RawMessage, error) {
+	var reqBody io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("marshal body: %w", err)
+		}
+		reqBody = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.APIBase+path, reqBody)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", c.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("POST %s: HTTP %d: %s", path, resp.StatusCode, truncate(string(respBody), 500))
+	}
+	return unwrap(respBody)
+}
+
+func (c *Client) GetTask(ctx context.Context, taskID string) (json.RawMessage, error) {
+	return c.Get(ctx, "/api/v1/job/"+taskID)
+}
+
+// WaitForTask polls GetTask at the given interval until the task reaches
+// a terminal status (`completed` or `failed`) or ctx is cancelled.
+// Non-terminal statuses (`pending`, `staged`, `processing`, `retry`) trigger
+// another poll. The returned payload is the final task JSON on terminal status.
+func (c *Client) WaitForTask(ctx context.Context, taskID string, interval time.Duration) (json.RawMessage, error) {
+	for {
+		data, err := c.GetTask(ctx, taskID)
+		if err != nil {
+			return nil, err
+		}
+		var t struct {
+			Status string `json:"status"`
+		}
+		if err := json.Unmarshal(data, &t); err != nil {
+			return nil, fmt.Errorf("parse task status: %w", err)
+		}
+		switch t.Status {
+		case "completed", "failed":
+			return data, nil
+		case "pending", "staged", "processing", "retry", "":
+			// keep polling
+		default:
+			return nil, fmt.Errorf("unknown task status: %s", t.Status)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("timeout waiting for task %s: %w", taskID, ctx.Err())
+		case <-time.After(interval):
+		}
+	}
 }
 
 func truncate(s string, n int) string {
