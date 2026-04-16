@@ -1,35 +1,28 @@
 # Legnext CLI
 
-**Midjourney CLI for AI agents.** Generate Midjourney images from the command line — built for Claude Code, Cursor, Cline, and shell scripts.
-
-## Status
-
-Early development. Commands and flags may change before `v1.0`.
-
-## Install
-
-Coming soon. Planned distributions:
-
-- Homebrew: `brew install legnext-ai/tap/legnext`
-- npm: `npm install -g @legnext/cli`
-- Shell: `curl -fsSL https://legnext.ai/install.sh | sh`
-
-## Quick start
+**Midjourney CLI for AI agents.** One command → image. JSON by default. Built for Claude Code, Cursor, Cline, and shell scripts.
 
 ```bash
-# one-time auth (paste API key from https://legnext.ai/app/api-keys)
+go install github.com/legnext-ai/legnext-cli@latest
 legnext login
-
-# generate an image (blocks until done, prints JSON result)
-legnext imagine "a photorealistic cat on a windowsill"
+legnext imagine "a photorealistic cat on a windowsill" --out ./cat.png
 ```
 
-## Design
+## Commands
 
-- **JSON by default** — pass `--text` for human-readable output
-- **Blocks by default** — CLI auto-polls upstream; pass `--no-wait` to return a task ID immediately
-- **Local files as first-class inputs** — `legnext describe @./photo.png` uploads automatically
-- **Env var auth** — `LEGNEXT_API_KEY=...` for CI and agent sandboxes
+| | |
+|---|---|
+| `imagine "<prompt>"` | generate a 2048×2048 4-grid |
+| `upscale <task_id> <n>` | upscale grid cell 0-3 |
+| `variation <task_id> <n>` | variation of cell 0-3 (`--remix` to rewrite prompt) |
+| `describe <url>` | reverse-engineer 4 prompts from a public image URL |
+| `status <task_id>` | one-shot task state, no polling |
+| `balance` | account credits and points |
+| `login` / `init` | save API key · install Claude Code skill |
+
+Blocks until done (auto-polls). Pass `--text` for human output, `--no-wait` for async, `--out <path>` to save.
+
+Homebrew, npm, and `curl | sh` packages coming soon.
 
 ## License
 
