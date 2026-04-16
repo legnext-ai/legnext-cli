@@ -1,0 +1,14 @@
+/legnext
+/dist/
+/bin/
+*.test
+*.out
+*.log
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+.idea/
+.vscode/
