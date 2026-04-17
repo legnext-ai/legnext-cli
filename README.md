@@ -3,7 +3,16 @@
 **Midjourney CLI for AI agents.** One command → image. JSON by default. Built for Claude Code, Cursor, Cline, and shell scripts.
 
 ```bash
-go install github.com/legnext-ai/legnext-cli@latest
+# Homebrew
+brew install legnext-ai/tap/legnext
+
+# or npm
+npx @legnext/cli imagine "hello world"
+
+# or curl
+curl -fsSL https://raw.githubusercontent.com/legnext-ai/legnext-cli/main/install.sh | sh
+
+# then
 legnext login
 legnext imagine "a photorealistic cat on a windowsill" --out ./cat.png
 ```
@@ -20,9 +29,7 @@ legnext imagine "a photorealistic cat on a windowsill" --out ./cat.png
 | `balance` | account credits and points |
 | `login` / `init` | save API key · install Claude Code skill |
 
-Blocks until done (auto-polls). Pass `--text` for human output, `--no-wait` for async, `--out <path>` to save.
-
-Homebrew, npm, and `curl | sh` packages coming soon.
+Blocks until done (auto-polls). `--text` for human output, `--no-wait` for async, `--out <path>` to save.
 
 ## License
 

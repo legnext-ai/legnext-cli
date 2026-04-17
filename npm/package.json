@@ -1,0 +1,28 @@
+{
+  "name": "@legnext/cli",
+  "version": "0.1.0",
+  "description": "Midjourney CLI for AI agents",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/legnext-ai/legnext-cli"
+  },
+  "homepage": "https://github.com/legnext-ai/legnext-cli",
+  "keywords": ["midjourney", "ai", "cli", "image-generation", "legnext"],
+  "bin": {
+    "legnext": "bin/legnext"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "files": [
+    "bin/",
+    "install.js",
+    "README.md"
+  ],
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"],
+  "engines": {
+    "node": ">=14"
+  }
+}

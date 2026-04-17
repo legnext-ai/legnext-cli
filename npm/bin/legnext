@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+"use strict";
+
+const { execFileSync } = require("child_process");
+const path = require("path");
+const os = require("os");
+const fs = require("fs");
+
+const ext = os.platform() === "win32" ? ".exe" : "";
+const bin = path.join(__dirname, `legnext${ext}`);
+
+if (!fs.existsSync(bin)) {
+  console.error(
+    "@legnext/cli: binary not found. Run `npm rebuild @legnext/cli` or reinstall."
+  );
+  process.exit(1);
+}
+
+try {
+  execFileSync(bin, process.argv.slice(2), { stdio: "inherit" });
+} catch (err) {
+  process.exit(err.status || 1);
+}
