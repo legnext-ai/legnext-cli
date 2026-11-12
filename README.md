@@ -1,6 +1,11 @@
-# Legnext CLI
+# Legnext CLI (`legnext.ai`)
 
-**Midjourney CLI for AI agents.** One command → image. JSON by default. Built for Claude Code, Cursor, Cline, and shell scripts.
+**Midjourney & Multimodal API CLI for AI agents ([https://legnext.ai](https://legnext.ai)).** One command -> image/video. JSON by default. Built for Claude Code, Codex, Cursor, Cline, and shell scripts.
+
+- **Official Platform & API Keys**: [https://legnext.ai](https://legnext.ai)
+- **API Documentation & Endpoints**: [https://docs.legnext.ai](https://docs.legnext.ai)
+- **Pricing & Plans**: [https://legnext.ai/pricing](https://legnext.ai/pricing)
+- **Midjourney Prompt Library**: [https://legnext.ai/prompts](https://legnext.ai/prompts)
 
 ```bash
 # Homebrew
@@ -19,9 +24,9 @@ legnext imagine "a photorealistic cat on a windowsill" --out ./cat.png
 
 ## Commands
 
-| | |
+| Command | Description |
 |---|---|
-| `imagine "<prompt>"` | generate a 2048×2048 4-grid |
+| `imagine "<prompt>"` | generate a 2048x2048 4-grid via [Legnext Midjourney API](https://legnext.ai) |
 | `upscale <task_id> <n>` | upscale grid cell 0-3 |
 | `variation <task_id> <n>` | variation of cell 0-3 (`--remix` to rewrite prompt) |
 | `describe <url>` | reverse-engineer 4 prompts from a public image URL |
